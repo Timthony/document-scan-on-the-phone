@@ -13,7 +13,14 @@ from mobilenet import *
 import tensorflow as tf
 
 
-
+# 论文给出的 HED 网络是一个通用的边缘检测网络，
+# 按照论文的描述，每一个尺度上得到的 image，都需要参与 cost 的计算
+# 按照这种方式训练出来的网络，检测到的边缘线是有一点粗的，
+# 为了得到更细的边缘线，通过多次试验找到了一种优化方案
+# 也就是不再让每个尺度上得到的 image 都参与 cost 的计算，
+# 只使用融合后得到的最终 image 来进行计算。
+# 另外还有一点，按照 HED 论文里的要求，计算 cost 的时候，不能使用常见的方差 cost，
+# 而应该使用 cost-sensitive loss function，
 def class_balanced_sigmoid_cross_entropy(logits, label):
     """
     :param logits: of shape (b, ...).
@@ -48,6 +55,8 @@ def mobilenet_v2_style_hed(inputs, batch_size, is_training):
 
 
 def mobilenet_v1_style_hed(inputs, batch_size, is_training):
+    # 前面一部分就是定义实现不同功能的各种 layer，
+    # 后面部分就是用各种 layer 来组装 net 的主体结构。
     assert const.use_batch_norm == True
     assert const.use_kernel_regularizer == False
 

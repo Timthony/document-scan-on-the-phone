@@ -1,4 +1,6 @@
 #coding=utf-8
+# 定义mobilenet_v1和mobilenet_v2
+# 进度：已完成
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -148,7 +150,7 @@ def mobilenet_v2_func_blocks(is_training):
     filter_initializer = tf.contrib.layers.xavier_initializer()
     activation_func = tf.nn.relu6
 
-    def con2d(inputs, filters, kernel_size, stride, scope=''):
+    def conv2d(inputs, filters, kernel_size, stride, scope=''):
         with tf.variable_scope(scope):
             with tf.variable_scope('conv2d'):
                 outputs = tf.layers.conv2d(inputs, filters, kernel_size, strides=(stride, stride),
@@ -190,11 +192,129 @@ def mobilenet_v2_func_blocks(is_training):
                                        kernel_initializer=filter_initializer)
             outputs = tf.layers.batch_normalization(outputs, training=is_training)
         return outputs
+    def depthwise_conv2d(inputs, depthwise_conv_kernel_size,stride):
+        with tf.variable_scope('depthwise_conv2d'):
+            outputs = tf.contrib.layers.separable_conv2d(
+                inputs,
+                None,
+                depthwise_conv_kernel_size,
+                depth_multiplier=1,
+                stride=(stride,stride),
+                padding='SAME',
+                activation_fn=None,
+                weights_initializer=filter_initializer,
+                biases_initializer=None)
+            outputs = tf.layers.batch_normalization(outputs, training=is_training)
+            outputs = tf.nn.relu(outputs)
+        return outputs
+    def avg_pool2d(inputs, scope=''):
+        inputs_shape = inputs.get_shape().as_list()
+        assert len(inputs_shape) == 4
+
+        pool_height = inputs_shape[1]
+        pool_width = inputs_shape[2]
+
+        with tf.variable_scope(scope):
+            outputs = tf.layers.average_pooling2d(inputs, [pool_height, pool_width],
+                                                  strides=(1, 1),padding='valid')
+
+        return outputs
+
+    def inverted_residual_block(inputs, filters, stride, expansion=6,scope=''):
+        assert stride == 1 or stride == 2
+        depthwise_conv_kernel_size = [3, 3]
+        pointwise_conv_filters = filters
+
+        with tf.variable_scope(scope):
+            net = inputs
+            net = expansion_conv2d(net, expansion, stride=1)
+            net = depthwise_conv2d(net, depthwise_conv_kernel_size, stride=stride)
+            net = projection_conv2d(net, pointwise_conv_filters, stride=1)
+
+            if stride == 1:
+                # print('----------------- test, net.get_shape().as_list()[3] = %r' % net.get_shape().as_list()[3])
+                # print('----------------- test, inputs.get_shape().as_list()[3] = %r' % inputs.get_shape().as_list()[3])
+                # 如果 net.get_shape().as_list()[3] != inputs.get_shape().as_list()[3]
+                # 借助一个 1x1 的卷积让他们的 channels 相等，然后再相加
+                if net.get_shape().as_list()[3] != inputs.get_shape().as_list()[3]:
+                    inputs = _1x1_conv2d(inputs, net.get_shape().as_list()[3], stride=1)
+
+                net = net + inputs
+                return net
+            else:
+                # stride == 2
+                return net
+
+    func_blocks = {}
+    func_blocks['conv2d'] = conv2d
+    func_blocks['inverted_residual_block'] = inverted_residual_block
+    func_blocks['avg_pool2d'] = avg_pool2d
+    func_blocks['filter_initializer'] = filter_initializer
+    func_blocks['activation_func'] = activation_func
+
+    return func_blocks
 
 
 
+def mobilenet_v2(inputs, is_training):
+    assert const.use_batch_norm == True
 
+    func_blocks = mobilenet_v2_func_blocks(is_training)
+    _conv2d = func_blocks['conv2d']
+    _inverted_residual_block = func_blocks['inverted_residual_block']
+    _avg_pool2d = func_blocks['avg_pool2d']
 
+    with tf.variable_scope('mobilenet_v2', 'mobilenet_v2', [inputs]):
+        end_points = {}
+        net = inputs
 
-def mobilenet_v2(inuts, is_training):
-    pass
+        net = _conv2d(net, 32, [3, 3], stride=2, scope='block0_0')  # size/2
+        end_points['block0'] = net
+        print('!! debug block0, net shape is: {}'.format(net.get_shape()))
+
+        net = _inverted_residual_block(net, 16, stride=1, expansion=1, scope='block1_0')
+        end_points['block1'] = net
+        print('!! debug block1, net shape is: {}'.format(net.get_shape()))
+
+        net = _inverted_residual_block(net, 24, stride=2, scope='block2_0')  # size/4
+        net = _inverted_residual_block(net, 24, stride=1, scope='block2_1')
+        end_points['block2'] = net
+        print('!! debug block2, net shape is: {}'.format(net.get_shape()))
+
+        net = _inverted_residual_block(net, 32, stride=2, scope='block3_0')  # size/8
+        net = _inverted_residual_block(net, 32, stride=1, scope='block3_1')
+        net = _inverted_residual_block(net, 32, stride=1, scope='block3_2')
+        end_points['block3'] = net
+        print('!! debug block3, net shape is: {}'.format(net.get_shape()))
+
+        net = _inverted_residual_block(net, 64, stride=2, scope='block4_0')  # size/16
+        net = _inverted_residual_block(net, 64, stride=1, scope='block4_1')
+        net = _inverted_residual_block(net, 64, stride=1, scope='block4_2')
+        net = _inverted_residual_block(net, 64, stride=1, scope='block4_3')
+        end_points['block4'] = net
+        print('!! debug block4, net shape is: {}'.format(net.get_shape()))
+
+        net = _inverted_residual_block(net, 96, stride=1, scope='block5_0')
+        net = _inverted_residual_block(net, 96, stride=1, scope='block5_1')
+        net = _inverted_residual_block(net, 96, stride=1, scope='block5_2')
+        end_points['block5'] = net
+        print('!! debug block5, net shape is: {}'.format(net.get_shape()))
+
+        net = _inverted_residual_block(net, 160, stride=2, scope='block6_0')  # size/32
+        net = _inverted_residual_block(net, 160, stride=1, scope='block6_1')
+        net = _inverted_residual_block(net, 160, stride=1, scope='block6_2')
+        end_points['block6'] = net
+        print('!! debug block6, net shape is: {}'.format(net.get_shape()))
+
+        net = _inverted_residual_block(net, 320, stride=1, scope='block7_0')
+        end_points['block7'] = net
+        print('!! debug block7, net shape is: {}'.format(net.get_shape()))
+
+        net = _conv2d(net, 1280, [1, 1], stride=1, scope='block8_0')
+        end_points['block8'] = net
+        print('!! debug block8, net shape is: {}'.format(net.get_shape()))
+
+        output = _avg_pool2d(net, scope='output')
+        print('!! debug after avg_pool, net shape is: {}'.format(output.get_shape()))
+
+    return output, end_points
