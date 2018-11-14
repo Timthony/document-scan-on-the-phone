@@ -1,5 +1,6 @@
 #coding=utf8
-
+# 定义hed网络
+# 进度：已完成
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -175,13 +176,6 @@ def mobilenet_v2_style_hed(inputs, batch_size, is_training):
             # print('debug, dsn_fuse shape is: {}'.format(dsn_fuse.get_shape()))
 
     return dsn_fuse, dsn1, dsn2, dsn3, dsn4, dsn5
-
-
-
-
-
-
-
 
 
 
