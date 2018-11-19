@@ -33,11 +33,16 @@ def class_balanced_sigmoid_cross_entropy(logits, label):
         count_pos = tf.reduce_sum(label)           # 样本中1的数量，表示边缘，边缘的像素点远小于count_neg，类别不平衡，所以不直接计算损失
         beta = count_neg/(count_neg + count_pos)
         pos_weight = beta/(1.0-beta)
+		# tf.nn.weighted_cross_entropy_with_logits和sigmoid_cross_entropy_with_logits()相似，区别就是加入了pos_weight
+		# 用来平衡查准率和查全率，在边缘检测中，边缘总是少数的，大部分都是非边缘，所以类别极不平衡
+		# 计算方法targets * -log(sigmoid(logits)) + (1 - targets) * -log(1 - sigmoid(logits))
         cost = tf.nn.weighted_cross_entropy_with_logits(logits=logits, targets=label, pos_weight=pos_weight)
         cost = tf.reduce_mean(cost * (1-beta))
         # 如果样本中1的数量等于0，那就直接让 cost 为 0，因为 beta == 1 时， 除法 pos_weight = beta / (1.0 - beta) 的结果是无穷大
         zero = tf.equal(count_pos, 0.0)
         final_cost = tf.where(zero, 0.0, cost)
+		# Return the elements, either from x or y, depending on the condition.
+	    # 如果zero为true，那么返回0.0， 如果zero为false，则返回cost
     return final_cost
 
 
@@ -384,14 +389,15 @@ def mobilenet_v1_style_hed(inputs, batch_size, is_training):
     return dsn_fuse, dsn1, dsn2, dsn3, dsn4, dsn5
 
 
-
+# 原始的HED网络，使用了裁剪版的vgg16，最后返回融合结果和五个边路结果
 def vgg_style_hed(inputs, batch_size, is_training):
+	# 通过使用这种初始化方法，我们能够保证输入变量的变化尺度不变，从而避免变化尺度在最后一层网络中爆炸或者弥散。
     filter_initializer = tf.contrib.layers.xavier_initializer()
     if const.use_kernel_regularizer:
         weights_regularizer = tf.contrib.layers.l2_regularizer(scale=0.0005)
     else:
         weights_regularizer = None
-
+    # 定义vgg网络的通用结构，方便后边直接调用
     def _vgg_conv2d(inputs, filters, kernel_size):
         use_bias = True
         if const.use_batch_norm:
@@ -437,7 +443,7 @@ def vgg_style_hed(inputs, batch_size, is_training):
         ## 不同激活
 
         return outputs
-
+    # 反卷积，将图像变为原始图大小，方便融合
     def _dsn_deconv2d_with_upsample_factor(inputs, filters, upsample_factor):
         kernel_size = [2 * upsample_factor, 2 * upsample_factor]
         outputs = tf.layers.conv2d_transpose(inputs, filters, kernel_size,
@@ -451,7 +457,7 @@ def vgg_style_hed(inputs, batch_size, is_training):
         # 只不过最后还有一步 1x1 的 conv2d 把 5 个 deconv2d 的输出再融合到一起
         # 所以不需要再使用 batch normalization 了
         return outputs
-
+    # 定义HED网络，利用上边定义的各种layer，结构参照了vgg16
     with tf.variable_scope('hed', 'hed', [inputs]):
         end_points = {}
         net = inputs
@@ -489,37 +495,37 @@ def vgg_style_hed(inputs, batch_size, is_training):
             dsn5 = net
             # 此处不需要池化
 
-        #########【dsn layers边路层】#############
+        #######【dsn layers边路层，HED的边路预测边缘的层，一共有五层和最后的融合层】######
         with tf.variable_scope('dsn1'):
             dsn1 = _dsn_1x1_conv2d(dsn1, 1)
             print('!! debug, dsn1 shape is: {}'.format(dsn1.get_shape()))
-            ## no need deconv2d
+            ## no need deconv2d，因为这一层的输出与输入一样
 
         with tf.variable_scope('dsn2'):
             dsn2 = _dsn_1x1_conv2d(dsn2, 1)
             print('!! debug, dsn2 shape is: {}'.format(dsn2.get_shape()))
-            dsn2 = _dsn_deconv2d_with_upsample_factor(dsn2, 1, upsample_factor=2)
+            dsn2 = _dsn_deconv2d_with_upsample_factor(dsn2, 1, upsample_factor=2) # 放大2倍
             print('!! debug, dsn2 shape is: {}'.format(dsn2.get_shape()))
         with tf.variable_scope('dsn3'):
             dsn3 = _dsn_1x1_conv2d(dsn3, 1)
             print('!! debug, dsn3 shape is: {}'.format(dsn3.get_shape()))
-            dsn3 = _dsn_deconv2d_with_upsample_factor(dsn3, 1, upsample_factor=4)
+            dsn3 = _dsn_deconv2d_with_upsample_factor(dsn3, 1, upsample_factor=4) # 放大4倍
             print('!! debug, dsn3 shape is: {}'.format(dsn3.get_shape()))
 
         with tf.variable_scope('dsn4'):
             dsn4 = _dsn_1x1_conv2d(dsn4, 1)
             print('!! debug, dsn4 shape is: {}'.format(dsn4.get_shape()))
-            dsn4 = _dsn_deconv2d_with_upsample_factor(dsn4, 1, upsample_factor=8)
+            dsn4 = _dsn_deconv2d_with_upsample_factor(dsn4, 1, upsample_factor=8) # 放大8倍
             print('!! debug, dsn4 shape is: {}'.format(dsn4.get_shape()))
 
         with tf.variable_scope('dsn5'):
             dsn5 = _dsn_1x1_conv2d(dsn5, 1)
             print('!! debug, dsn5 shape is: {}'.format(dsn5.get_shape()))
-            dsn5 = _dsn_deconv2d_with_upsample_factor(dsn5, 1, upsample_factor=16)
+            dsn5 = _dsn_deconv2d_with_upsample_factor(dsn5, 1, upsample_factor=16) # 放大16倍
             print('!! debug, dsn5 shape is: {}'.format(dsn5.get_shape()))
-        #################【将边路层融合】###################
+        #################【将5个边路层融合】###################
         with tf.variable_scope('dsn_fuse'):
-            dsn_fuse = tf.concat([dsn1, dsn2, dsn3, dsn4, dsn5], 3)
+            dsn_fuse = tf.concat([dsn1, dsn2, dsn3, dsn4, dsn5], 3)   # 连接张量
             print('debug, dsn_fuse shape is: {}'.format(dsn_fuse.get_shape()))
             dsn_fuse = _output_1x1_conv2d(dsn_fuse, 1)
             print('debug, dsn_fuse shape is: {}'.format(dsn_fuse.get_shape()))
