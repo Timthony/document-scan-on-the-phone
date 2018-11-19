@@ -29,8 +29,8 @@ def class_balanced_sigmoid_cross_entropy(logits, label):
     :return:class-balanced cross entropy loss.
     """
     with tf.name_scope('class_balanced_sigmoid_cross_entropy'):
-        count_neg = tf.reduce_sum(1.0 - label)     # 样本中0的数量
-        count_pos = tf.reduce_sum(label)           # 样本中1的数量，远小于count_neg
+        count_neg = tf.reduce_sum(1.0 - label)     # 样本中0的数量, 负样本
+        count_pos = tf.reduce_sum(label)           # 样本中1的数量，表示边缘，边缘的像素点远小于count_neg，类别不平衡，所以不直接计算损失
         beta = count_neg/(count_neg + count_pos)
         pos_weight = beta/(1.0-beta)
         cost = tf.nn.weighted_cross_entropy_with_logits(logits=logits, targets=label, pos_weight=pos_weight)
