@@ -1,5 +1,5 @@
 #coding=utf8
-
+# 在 python 环境中测试 HED 网络
 #进度：已完成
 from __future__ import absolute_import
 from __future__ import division
@@ -26,7 +26,7 @@ flags.DEFINE_string('output_dir', './test_image',
 FLAGS = flags.FLAGS
 
 if not os.path.exists(FLAGS.image):
-    print('iamge {} not exists, please retry' % FLAGS.image)
+    print('image {} not exists, please retry' % FLAGS.image)
     exit()
 
 if __name__ == "__main__":
@@ -55,7 +55,7 @@ if __name__ == "__main__":
     global_init = tf.global_variables_initializer()
 
     # Saver
-    hed_weights  = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='hed')
+    hed_weights = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='hed')
     saver = tf.train.Saver(hed_weights)
     with tf.Session() as sess:
         sess.run(global_init)
@@ -79,7 +79,7 @@ if __name__ == "__main__":
                           dsn5],
                          feed_dict=feed_dict_to_use)
 
-        # print('%r' % _dsn_fuse)
+        print('%r' % _dsn_fuse)
 
         '''
         HED 网络输出的 Tensor 中的像素值，并不是像 label image 那样落在 (0.0, 1.0) 这个区间范围内的。

@@ -4,7 +4,8 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-
+# Python提供了__future__模块，把下一个新版本的特性导入到当前版本，
+# 于是我们就可以在当前版本中测试一些新版本的特性。
 import sys
 import os
 import const
@@ -13,6 +14,7 @@ import tensorflow as tf
 
 def mobilenet_v1(inputs, alpha, is_training):
     assert const.use_batch_norm == True
+    # assert断言是声明其布尔值必须为真的判定，如果发生异常就说明表达示为假
     # 缩小因子， 只能为1，0.75，0.5，0.25
     if alpha not in [0.25, 0.50, 0.75, 1.0]:
         raise ValueError('alpha can be one of'

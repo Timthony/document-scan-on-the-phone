@@ -1,6 +1,12 @@
 #!/usr/bin/python
 #coding=utf8
 # 状态：已完成
+# 2018-11-20 21:01:06.253452+0800 generate_training_dataset[869:10656] documentsDirectory is: /Users/arcstone_mems_108/Library/Developer/CoreSimulator/Devices/EA1FA0AA-6981-4C15-A34D-89445CF6E171/data/Containers/Data/Application/59E990BC-69EF-4617-ADA0-C053C4DAEA83/Documents
+# 2018-11-20 21:01:06.253610+0800 generate_training_dataset[869:10656] resourcePath is: /Users/arcstone_mems_108/Library/Developer/CoreSimulator/Devices/EA1FA0AA-6981-4C15-A34D-89445CF6E171/data/Containers/Bundle/Application/3465A461-4850-4887-BE1B-CB21FB442FEA/generate_training_dataset.app
+# 2018-11-20 21:01:06.270228+0800 generate_training_dataset[869:10656] self.edgeImageView.layer.anchorPoint is: {0.5, 0.5}
+# 2018-11-20 21:01:06.462324+0800 generate_training_dataset[869:10656] --debug, 0-0, IMG_3172.JPG, picture12.jpg
+# 2018-11-20 21:01:06.823104+0800 generate_training_dataset[869:10734] background: 0/97, rect: 1/130, valid transform: 3, invalid transform: 18
+# 2018-11-20 21:01:06.989153+0800 generate_training_dataset[869:10656] --debug, 0-1, IMG_3172.JPG, 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
