@@ -12,6 +12,7 @@ import const
 
 import tensorflow as tf
 
+# mobilenet_v1网络定义
 def mobilenet_v1(inputs, alpha, is_training):
     assert const.use_batch_norm == True
     # assert断言是声明其布尔值必须为真的判定，如果发生异常就说明表达示为假
@@ -20,7 +21,7 @@ def mobilenet_v1(inputs, alpha, is_training):
         raise ValueError('alpha can be one of'
                          '`0.25`, `0.50`, `0.75` or `1.0` only.')
     filter_initializer = tf.contrib.layers.xavier_initializer()
-
+    # 卷积，BN，RELU
     def _conv2d(inputs, filters, kernel_size, stride, scope=''):
         with tf.variable_scope(scope):
             outputs = tf.layers.conv2d(inputs, filters, kernel_size,
@@ -31,7 +32,7 @@ def mobilenet_v1(inputs, alpha, is_training):
             outputs = tf.layers.batch_normalization(outputs, training=is_training)
             outputs = tf.nn.relu(outputs)
         return outputs
-
+    # 深度可分离卷积，标准卷积分解成深度卷积(depthwise convolution)和逐点卷积(pointwise convolution)
     def _depthwise_conv2d(inputs,
                           pointwise_conv_filters,
                           depthwise_conv_kernel_size,
@@ -64,7 +65,7 @@ def mobilenet_v1(inputs, alpha, is_training):
                 outputs = tf.nn.relu(outputs)
 
         return outputs
-
+    # 平均池化
     def _avg_pool2d(inputs, scope=''):
         inputs_shape = inputs.get_shape().as_list()
         assert len(inputs_shape) == 4
@@ -146,7 +147,7 @@ def mobilenet_v1(inputs, alpha, is_training):
 
 
 
-
+# mobilenet_v2网络定义
 def mobilenet_v2_func_blocks(is_training):
     assert const.use_batch_norm == True
     filter_initializer = tf.contrib.layers.xavier_initializer()

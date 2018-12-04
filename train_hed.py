@@ -10,7 +10,7 @@ import os
 import numpy as np
 
 import tensorflow as tf
-
+# python版本号比较函数
 from distutils.version import LooseVersion
 assert LooseVersion(tf.__version__) >= LooseVersion('1.6'), '请使用Tensorflow version 1.6 or newer'
 print('TensorFlow Version: {}'.format(tf.__version__))
@@ -19,7 +19,8 @@ import const
 from util import *
 from input_pipeline import *
 from hed_net import *
-
+###################################################【参数设置】#####################################
+# 用于支持接受命令行传递参数
 from tensorflow import flags
 
 flags.DEFINE_string('dataset_root_dir', '',
@@ -70,7 +71,7 @@ print('checkpoint_dir is: {}'.format(FLAGS.checkpoint_dir))
 print('debug_image_dir is: {}'.format(FLAGS.debug_image_dir))
 print('###########################################')
 print('###########################################')
-
+#################################################################################################
 if __name__ == "__main__":
     # 命令行传入的路径参数，不带最后的'/'，这里要把'/'补全，然后传入给fix_size_image_pipeline
     dataset_root_dir_string = os.path.join(FLAGS.dataset_root_dir, '')
@@ -113,7 +114,7 @@ if __name__ == "__main__":
                                                                     FLAGS.batch_size,
                                                                     is_training_placeholder)
     print('dsn_fuse shape is: {}'.format(dsn_fuse.get_shape()))
-
+    # 只计算融合层的参数，不同于论文中即计算融合层又计算五个边路层
     cost = class_balanced_sigmoid_cross_entropy(dsn_fuse, annotation_tensor)
     if const.use_kernel_regularizer:
         reg_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
@@ -126,7 +127,7 @@ if __name__ == "__main__":
 
     print('cost shape is: {}'.format(cost.get_shape()))
     cost_reduce_mean = tf.reduce_mean(cost)  # for tf.summary
-
+    # 最小化损失
     with tf.variable_scope("adam_vars"):
         if const.use_batch_norm == True:
             with tf.control_dependencies(tf.get_collection(tf.GraphKeys.UPDATE_OPS)):
@@ -142,7 +143,7 @@ if __name__ == "__main__":
     summary_string_writer = tf.summary.FileWriter(FLAGS.log_dir)
 
     # saver
-    hed_weights = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='hed')
+    hed_weights = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='hed') # 从列表中取出所有元素，构成一个新列表
     all_variables_can_restore = hed_weights  # 还可以加上其他的 var，整体就是个 [] 数组
     # print('===============================')
     # print('===============================')
@@ -153,15 +154,15 @@ if __name__ == "__main__":
     # print('===============================')
     # print('===============================')
     # print('===============================')
-    ckpt_saver = tf.train.Saver(all_variables_can_restore)
+    ckpt_saver = tf.train.Saver(all_variables_can_restore)   # 创建一个Saver用于保存模型
 
     print('\n\n')
     print('############################################################')
     with tf.Session() as sess:
         sess.run(global_init)
-
+        # 恢复模型
         if FLAGS.restore_checkpoint:
-            latest_ck_file = tf.train.latest_checkpoint(FLAGS.checkpoint_dir)
+            latest_ck_file = tf.train.latest_checkpoint(FLAGS.checkpoint_dir)  # 返回最近一次保存的模型
             if latest_ck_file:
                 print('restore from latest checkpoint file : {}'.format(latest_ck_file))
                 ckpt_saver.restore(sess, latest_ck_file)
@@ -176,7 +177,7 @@ if __name__ == "__main__":
             exit()
         ##############
 
-
+        # 开始训练
         print('\nStart train...')
         print('batch_size is: {}'.format(FLAGS.batch_size))
         print('iterations is: {}'.format(FLAGS.iterations))
@@ -186,10 +187,11 @@ if __name__ == "__main__":
             print('++ use l2 regularizer')
         if const.use_batch_norm == True:
             print('++ use batch norm')
-
+        # 只有调用 tf.train.start_queue_runners 之后，才会真正把tensor推入内存序列中，
+        # 供计算单元调用，否则会由于内存序列为空，数据流图会处于一直等待状态。
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(sess=sess, coord=coord)
-
+        # 启动tensor的入队线程，可以用来启动多个工作线程同时将多个tensor（训练数据）推送入文件名称队列中
         for step in range(FLAGS.iterations):
             feed_dict_to_use[is_training_placeholder] = True
             loss_mean, loss, summary_string = sess.run([cost_reduce_mean, cost, merged_summary_op],
