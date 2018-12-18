@@ -2,3 +2,5 @@
 *.css linguist-language=Python
 *.html linguist-language=Python
 *.pb linguist-language=Python
+ios_demo/* linguist-vendored
+generate_training_dataset/* linguist-vendored
