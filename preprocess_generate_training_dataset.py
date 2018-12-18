@@ -19,6 +19,7 @@ import imghdr
 import csv
 
 from tensorflow import flags
+# 第一个是参数名称，第二个参数是默认值，第三个是参数描述, 用于支持接受命令行传递参数
 flags.DEFINE_string('dataset_root_dir', '', 'Root directory to put all the training data.')
 flags.DEFINE_string('dataset_folder_name', '', 'Folder name for training data. Can contain sub folder name.')
 FLAGS = flags.FLAGS
@@ -104,7 +105,7 @@ if __name__ == "__main__":
         grayImage = cv2.cvtColor(image, cv2.COLOR_BGRA2GRAY)
         cv2.imwrite(annotation_gray_image_path, grayImage)
 
-        #二值化，这张图才是训练样本中的 Y
+        # 二值化，这张图才是训练样本中的 Y
         ret, threshGrayImage = cv2.threshold(grayImage, 20, 255, cv2.THRESH_BINARY)
         cv2.imwrite(annotation_thresh_gray_image_path, threshGrayImage)
 

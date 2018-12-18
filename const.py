@@ -20,7 +20,7 @@ import const
 
 import os
 
-const.image_height = 256
+const.image_height = 256       # 图像和边缘图的尺寸为256*256
 const.image_width = 256
 
 

@@ -1,5 +1,6 @@
 #coding=utf8
 # 将变量值固定在图中的操作
+# 之前的模型和权重是分开保存的，现在整合到一起，将训练数据和模型固化成pb文件
 # 状态：已完成
 
 
@@ -20,6 +21,9 @@ flags.DEFINE_string('checkpoint_dir', './checkpoint',
                     'Checkpoint directory.')
 FLAGS = flags.FLAGS
 
+# 首行它先加载模型文件，再从checkpoint文件读取权重数据初始化到模型里的权重变量，再将权重变量转换成权重 常量
+# （因为 常量 能随模型一起保存在同一个文件里），然后再通过指定的输出节点将没用于输出推理的Op节点从图中剥离掉，
+# 再重新保存到指定的文件里（用write_graphdef或Saver）
 
 if __name__ == "__main__":
     hed_graph_without_weights_file_name = 'hed_graph_without_weights.pb'
@@ -42,7 +46,7 @@ if __name__ == "__main__":
 
     with tf.Session() as sess:
         sess.run(global_init)
-
+        # 载入最后一次保存的模型
         latest_ck_file = tf.train.latest_checkpoint(FLAGS.checkpoint_dir)
         if latest_ck_file:
             print('restore from latest checkpoint file : {}'.format(latest_ck_file))

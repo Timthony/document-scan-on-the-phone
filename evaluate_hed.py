@@ -59,7 +59,7 @@ if __name__ == "__main__":
     saver = tf.train.Saver(hed_weights)
     with tf.Session() as sess:
         sess.run(global_init)
-
+        # 载入最新的模型
         latest_ck_file = tf.train.latest_checkpoint(FLAGS.checkpoint_dir)
         if latest_ck_file:
             print('restore from latest checkpoint file : {}'.format(latest_ck_file))
