@@ -32,10 +32,11 @@ def class_balanced_sigmoid_cross_entropy(logits, label):
         count_neg = tf.reduce_sum(1.0 - label)     # 样本中0的数量, 负样本
         count_pos = tf.reduce_sum(label)           # 样本中1的数量，表示边缘，边缘的像素点远小于count_neg，类别不平衡，所以不直接计算损失
         beta = count_neg/(count_neg + count_pos)
-        pos_weight = beta/(1.0-beta)
+        pos_weight = beta/(1.0-beta)               # 大于1的值
 		# tf.nn.weighted_cross_entropy_with_logits和sigmoid_cross_entropy_with_logits()相似，区别就是加入了pos_weight
 		# 用来平衡查准率和查全率，在边缘检测中，边缘总是少数的，大部分都是非边缘，所以类别极不平衡
-		# 计算方法targets * -log(sigmoid(logits)) + (1 - targets) * -log(1 - sigmoid(logits))
+		# 计算方法targets * -log(sigmoid(logits)) * pos_weight +
+        #     (1 - targets) * -log(1 - sigmoid(logits))
         cost = tf.nn.weighted_cross_entropy_with_logits(logits=logits, targets=label, pos_weight=pos_weight)
         cost = tf.reduce_mean(cost * (1-beta))
         # 如果样本中1的数量等于0，那就直接让 cost 为 0，因为 beta == 1 时， 除法 pos_weight = beta / (1.0 - beta) 的结果是无穷大

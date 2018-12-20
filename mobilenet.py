@@ -152,7 +152,7 @@ def mobilenet_v2_func_blocks(is_training):
     assert const.use_batch_norm == True
     filter_initializer = tf.contrib.layers.xavier_initializer()
     activation_func = tf.nn.relu6
-
+    # 普通卷积
     def conv2d(inputs, filters, kernel_size, stride, scope=''):
         with tf.variable_scope(scope):
             with tf.variable_scope('conv2d'):
@@ -164,6 +164,7 @@ def mobilenet_v2_func_blocks(is_training):
 
             return outputs
 
+    # 逐点卷积
     def _1x1_conv2d(inputs, filters, stride):
         kernel_size = [1, 1]
         with tf.variable_scope('1x1_conv2d'):
@@ -172,7 +173,7 @@ def mobilenet_v2_func_blocks(is_training):
                                        kernel_initializer=filter_initializer)
             outputs = tf.layers.batch_normalization(outputs, training=is_training)
         return outputs
-
+    # 升维
     def expansion_conv2d(inputs, expansion, stride):
         input_shape = inputs.get_shape().as_list()
         assert len(input_shape) == 4
@@ -186,7 +187,7 @@ def mobilenet_v2_func_blocks(is_training):
             outputs = tf.layers.batch_normalization(outputs, training=is_training)
             outputs = activation_func(outputs)
         return outputs
-
+    # 降维
     def projection_conv2d(inputs, filters, stride):
         kernel_size = [1, 1]
         with tf.variable_scope('projection_1x1_conv2d'):
@@ -195,6 +196,7 @@ def mobilenet_v2_func_blocks(is_training):
                                        kernel_initializer=filter_initializer)
             outputs = tf.layers.batch_normalization(outputs, training=is_training)
         return outputs
+    # 深度可分离卷积
     def depthwise_conv2d(inputs, depthwise_conv_kernel_size,stride):
         with tf.variable_scope('depthwise_conv2d'):
             outputs = tf.contrib.layers.separable_conv2d(
@@ -208,7 +210,7 @@ def mobilenet_v2_func_blocks(is_training):
                 weights_initializer=filter_initializer,
                 biases_initializer=None)
             outputs = tf.layers.batch_normalization(outputs, training=is_training)
-            outputs = tf.nn.relu(outputs)
+            outputs = activation_func(outputs)
         return outputs
     def avg_pool2d(inputs, scope=''):
         inputs_shape = inputs.get_shape().as_list()
