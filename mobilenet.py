@@ -212,6 +212,7 @@ def mobilenet_v2_func_blocks(is_training):
             outputs = tf.layers.batch_normalization(outputs, training=is_training)
             outputs = activation_func(outputs)
         return outputs
+    #  池化
     def avg_pool2d(inputs, scope=''):
         inputs_shape = inputs.get_shape().as_list()
         assert len(inputs_shape) == 4
@@ -224,7 +225,7 @@ def mobilenet_v2_func_blocks(is_training):
                                                   strides=(1, 1),padding='valid')
 
         return outputs
-
+    # 倒置的残差
     def inverted_residual_block(inputs, filters, stride, expansion=6,scope=''):
         assert stride == 1 or stride == 2
         depthwise_conv_kernel_size = [3, 3]
@@ -232,9 +233,9 @@ def mobilenet_v2_func_blocks(is_training):
 
         with tf.variable_scope(scope):
             net = inputs
-            net = expansion_conv2d(net, expansion, stride=1)
-            net = depthwise_conv2d(net, depthwise_conv_kernel_size, stride=stride)
-            net = projection_conv2d(net, pointwise_conv_filters, stride=1)
+            net = expansion_conv2d(net, expansion, stride=1)  # 升维
+            net = depthwise_conv2d(net, depthwise_conv_kernel_size, stride=stride) # 特征提取
+            net = projection_conv2d(net, pointwise_conv_filters, stride=1) # 降维
 
             if stride == 1:
                 # print('----------------- test, net.get_shape().as_list()[3] = %r' % net.get_shape().as_list()[3])
@@ -249,7 +250,7 @@ def mobilenet_v2_func_blocks(is_training):
             else:
                 # stride == 2
                 return net
-
+    # 定义功能块的集合
     func_blocks = {}
     func_blocks['conv2d'] = conv2d
     func_blocks['inverted_residual_block'] = inverted_residual_block
@@ -273,7 +274,7 @@ def mobilenet_v2(inputs, is_training):
         end_points = {}
         net = inputs
 
-        net = _conv2d(net, 32, [3, 3], stride=2, scope='block0_0')  # size/2
+        net = _conv2d(net, 32, [3, 3], stride=2, scope='block0_0')
         end_points['block0'] = net
         print('!! debug block0, net shape is: {}'.format(net.get_shape()))
 
@@ -281,18 +282,18 @@ def mobilenet_v2(inputs, is_training):
         end_points['block1'] = net
         print('!! debug block1, net shape is: {}'.format(net.get_shape()))
 
-        net = _inverted_residual_block(net, 24, stride=2, scope='block2_0')  # size/4
+        net = _inverted_residual_block(net, 24, stride=2, scope='block2_0')
         net = _inverted_residual_block(net, 24, stride=1, scope='block2_1')
         end_points['block2'] = net
         print('!! debug block2, net shape is: {}'.format(net.get_shape()))
 
-        net = _inverted_residual_block(net, 32, stride=2, scope='block3_0')  # size/8
+        net = _inverted_residual_block(net, 32, stride=2, scope='block3_0')
         net = _inverted_residual_block(net, 32, stride=1, scope='block3_1')
         net = _inverted_residual_block(net, 32, stride=1, scope='block3_2')
         end_points['block3'] = net
         print('!! debug block3, net shape is: {}'.format(net.get_shape()))
 
-        net = _inverted_residual_block(net, 64, stride=2, scope='block4_0')  # size/16
+        net = _inverted_residual_block(net, 64, stride=2, scope='block4_0')
         net = _inverted_residual_block(net, 64, stride=1, scope='block4_1')
         net = _inverted_residual_block(net, 64, stride=1, scope='block4_2')
         net = _inverted_residual_block(net, 64, stride=1, scope='block4_3')
@@ -305,7 +306,7 @@ def mobilenet_v2(inputs, is_training):
         end_points['block5'] = net
         print('!! debug block5, net shape is: {}'.format(net.get_shape()))
 
-        net = _inverted_residual_block(net, 160, stride=2, scope='block6_0')  # size/32
+        net = _inverted_residual_block(net, 160, stride=2, scope='block6_0')
         net = _inverted_residual_block(net, 160, stride=1, scope='block6_1')
         net = _inverted_residual_block(net, 160, stride=1, scope='block6_2')
         end_points['block6'] = net

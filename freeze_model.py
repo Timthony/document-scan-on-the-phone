@@ -77,7 +77,7 @@ if __name__ == "__main__":
 
         ################################################
         ################################################
-        # Write input graph pb file
+        # Write input graph pb file保存图模型
         tf.train.write_graph(sess.graph.as_graph_def(), FLAGS.checkpoint_dir, hed_graph_without_weights_file_name)
 
         # We save out the graph to disk, and then call the const conversion routine.
@@ -88,7 +88,7 @@ if __name__ == "__main__":
         restore_op_name = "save/restore_all"
         filename_tensor_name = "save/Const:0"
         clear_devices = False
-        # TensorFlow自带的这个freeze_graph函数，文档解释的不清楚，TODO
+        # TensorFlow自带的这个freeze_graph函数，TODO
         freeze_graph.freeze_graph(hed_graph_without_weights_file_path, input_saver_def_path,
                                 input_binary, input_checkpoint_path,
                                 output_node_names, restore_op_name,
